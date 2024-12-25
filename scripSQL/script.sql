@@ -12,3 +12,8 @@ create table user_(
     tel varchar(20),
     supprimer TINYINT(1) DEFAULT 0
     );
+
+
+
+
+    -- member table here 
