@@ -48,3 +48,15 @@ CREATE table activite (
 --add table
     ALTER TABLE activite
 add COLUMN image blob ;
+
+--
+alter TABLE user_ 
+add COLUMN nom varchar(500);
+
+--alter TABLE user_ 
+add COLUMN prenom varchar(500);
+
+
+--
+alter TABLE user_ 
+add COLUMN password varchar(500);
