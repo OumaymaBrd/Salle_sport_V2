@@ -25,3 +25,12 @@ create table user_(
     FOREIGN KEY (id_membre) REFERENCES user(id) ON DELETE CASCADE,
     FOREIGN KEY (matricule) REFERENCES user(matricule) ON DELETE CASCADE
 );
+
+ 
+-- add column  nom_activite
+ALTER TABLE reservation 
+add COLUMN nom_activite text;
+
+--add colomn matricule coach
+ALTER TABLE reservation
+ADD COLUMN matricule_coach varchar(150);
