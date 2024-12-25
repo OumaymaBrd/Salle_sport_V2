@@ -34,3 +34,17 @@ add COLUMN nom_activite text;
 --add colomn matricule coach
 ALTER TABLE reservation
 ADD COLUMN matricule_coach varchar(150);
+
+--create le tableau reservation 
+CREATE table activite (
+    id int PRIMARY key AUTO_INCREMENT,
+    nom_activite text ,
+    matricule_coach varchar(150),
+    description text,
+    FOREIGN KEY(matricule_coach) REFERENCES user_(matricule),
+    supprimer TINYINT(1) DEFAULT 0TINYINT(1) DEFAULT 0
+    );
+
+--add table
+    ALTER TABLE activite
+add COLUMN image blob ;
