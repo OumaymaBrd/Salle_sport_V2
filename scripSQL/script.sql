@@ -12,3 +12,16 @@ create table user_(
     tel varchar(20),
     supprimer TINYINT(1) DEFAULT 0
     );
+
+    --creation tableau reservation 
+    CREATE TABLE reservation (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    id_membre INT,
+    matricule VARCHAR(150),
+    post ENUM('membre', 'coach', 'administration'),
+    date_reservation DATETIME,
+    status ENUM('confirme', 'non confirme'),
+
+    FOREIGN KEY (id_membre) REFERENCES user(id) ON DELETE CASCADE,
+    FOREIGN KEY (matricule) REFERENCES user(matricule) ON DELETE CASCADE
+);
