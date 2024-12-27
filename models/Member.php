@@ -2,45 +2,72 @@
 require_once 'User.php';
 
 class Member extends User {
-    public function getActivities() {
-        $query = "SELECT * FROM activite WHERE supprimer = 0";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt;
-    }
+    private $reservation_table = "reservation";
+    private $activity_table = "activite";
 
-    public function makeReservation($activite_id) {
-        $query = "INSERT INTO reservation SET id_membre = :id_membre, matricule = :matricule, date_reservation = :date_reservation, status = 'non confirme', nom_activite = (SELECT nom_activite FROM activite WHERE id = :activite_id)";
+    public function addReservation($activity_id, $date_reservation, $status) {
+        $query = "INSERT INTO " . $this->reservation_table . " 
+                  SET user_id = :user_id, activite_id = :activity_id, 
+                  date_reservation = :date_reservation, status = :status";
+
         $stmt = $this->conn->prepare($query);
 
-        $stmt->bindParam(":id_membre", $this->id);
-        $stmt->bindParam(":matricule", $this->matricule);
-        $stmt->bindParam(":date_reservation", date('Y-m-d H:i:s'));
-        $stmt->bindParam(":activite_id", $activite_id);
+        $stmt->bindParam(":user_id", $this->id);
+        $stmt->bindParam(":activity_id", $activity_id);
+        $stmt->bindParam(":date_reservation", $date_reservation);
+        $stmt->bindParam(":status", $status);
 
         if($stmt->execute()) {
-            return true;
+            return $this->conn->lastInsertId();
         }
         return false;
+    }
+
+    public function updateReservation($reservation_id, $new_date) {
+        $query = "UPDATE " . $this->reservation_table . "
+                  SET date_reservation = :new_date
+                  WHERE id = :reservation_id AND user_id = :user_id";
+
+        $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(":new_date", $new_date);
+        $stmt->bindParam(":reservation_id", $reservation_id);
+        $stmt->bindParam(":user_id", $this->id);
+
+        return $stmt->execute();
+    }
+
+    public function deleteReservation($reservation_id) {
+        $query = "DELETE FROM " . $this->reservation_table . "
+                  WHERE id = :reservation_id AND user_id = :user_id";
+
+        $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(":reservation_id", $reservation_id);
+        $stmt->bindParam(":user_id", $this->id);
+
+        return $stmt->execute();
     }
 
     public function getReservations() {
-        $query = "SELECT * FROM reservation WHERE id_membre = :id_membre";
+        $query = "SELECT r.*, a.nom_activite 
+                  FROM " . $this->reservation_table . " r
+                  JOIN " . $this->activity_table . " a ON r.activite_id = a.id
+                  WHERE r.user= :user_id";
+
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id_membre", $this->id);
+        $stmt->bindParam(":user_id", $this->id);
         $stmt->execute();
+
         return $stmt;
     }
 
-    public function cancelReservation($reservation_id) {
-        $query = "DELETE FROM reservation WHERE id = :id AND id_membre = :id_membre";
+    public function getActivities() {
+        $query = "SELECT * FROM " . $this->activity_table;
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id", $reservation_id);
-        $stmt->bindParam(":id_membre", $this->id);
-        if($stmt->execute()) {
-            return true;
-        }
-        return false;
+        $stmt->execute();
+
+        return $stmt;
     }
 }
 ?>

@@ -1,8 +1,12 @@
 <?php
 session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once 'config/database.php';
 require_once 'models/Member.php';
 require_once 'models/Administrator.php';
+require_once 'models/User.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -36,7 +40,7 @@ if(isset($_POST['login'])) {
         $_SESSION['nom'] = $user->nom;
         $_SESSION['prenom'] = $user->prenom;
         setcookie("user_logged", "true", time() + (86400 * 30), "/");
-        header("Location: index.php");
+        header("Location: index.php?matricule=" . $user->matricule);
         exit();
     } else {
         $error = "Invalid credentials";
@@ -50,128 +54,75 @@ if(isset($_GET['logout'])) {
     exit();
 }
 
-if(isset($_POST['add_activity'])) {
-    header('Content-Type: application/json');
-    $response = array();
-    
-    if($user instanceof Administrator) {
+// Handle POST requests for various actions
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $response = ['status' => 'error', 'message' => 'Action non reconnue'];
+
+    if (isset($_POST['add_activity']) && $user instanceof Administrator) {
         $nom_activite = $_POST['nom_activite'];
         $description = $_POST['description'];
-        $matricule_administration = $user->matricule;
-
-        $result = $user->addActivity($nom_activite, $description, $matricule_administration);
-        if($result) {
-            $response = array(
-                'status' => 'success',
-                'message' => 'Activité ajoutée avec succès!',
-                'id' => $result
-            );
+        $result = $user->addActivity($nom_activite, $description, $_SESSION['matricule']);
+        if ($result) {
+            $response = ['status' => 'success', 'message' => 'Activité ajoutée avec succès', 'data' => $result];
         } else {
-            $response = array(
-                'status' => 'error',
-                'message' => 'Erreur lors de l\'ajout de l\'activité.'
-            );
+            $response = ['status' => 'error', 'message' => 'Erreur lors de l\'ajout de l\'activité'];
         }
-    } else {
-        $response = array(
-            'status' => 'error',
-            'message' => 'Vous n\'avez pas les droits nécessaires.'
-        );
-    }
-    
-    echo json_encode($response);
-    exit();
-}
-
-if(isset($_POST['update_reservation'])) {
-    header('Content-Type: application/json');
-    $response = array();
-    
-    if($user instanceof Administrator) {
+    } elseif (isset($_POST['update_reservation']) && $user instanceof Administrator) {
         $reservation_id = $_POST['reservation_id'];
         $status = $_POST['status'];
-
         $result = $user->updateReservationStatus($reservation_id, $status);
-        if($result) {
-            $response = array(
-                'status' => 'success',
-                'message' => 'Statut de la réservation mis à jour avec succès!'
-            );
+        if ($result) {
+            $response = ['status' => 'success', 'message' => 'Statut de réservation mis à jour avec succès'];
         } else {
-            $response = array(
-                'status' => 'error',
-                'message' => 'Erreur lors de la mise à jour du statut de la réservation.'
-            );
+            $response = ['status' => 'error', 'message' => 'Erreur lors de la mise à jour du statut de réservation'];
         }
-    } else {
-        $response = array(
-            'status' => 'error',
-            'message' => 'Vous n\'avez pas les droits nécessaires.'
-        );
-    }
-    
-    echo json_encode($response);
-    exit();
-}
-
-if(isset($_POST['update_activity'])) {
-    header('Content-Type: application/json');
-    $response = array();
-    
-    if($user instanceof Administrator) {
+    } elseif (isset($_POST['update_activity']) && $user instanceof Administrator) {
         $activity_id = $_POST['activity_id'];
         $nom_activite = $_POST['nom_activite'];
         $description = $_POST['description'];
-
         $result = $user->updateActivity($activity_id, $nom_activite, $description);
-        if($result) {
-            $response = array(
-                'status' => 'success',
-                'message' => 'Activité mise à jour avec succès!'
-            );
+        if ($result) {
+            $response = ['status' => 'success', 'message' => 'Activité mise à jour avec succès'];
         } else {
-            $response = array(
-                'status' => 'error',
-                'message' => 'Erreur lors de la mise à jour de l\'activité.'
-            );
+            $response = ['status' => 'error', 'message' => 'Erreur lors de la mise à jour de l\'activité'];
         }
-    } else {
-        $response = array(
-            'status' => 'error',
-            'message' => 'Vous n\'avez pas les droits nécessaires.'
-        );
-    }
-    
-    echo json_encode($response);
-    exit();
-}
-
-if(isset($_POST['delete_activity'])) {
-    header('Content-Type: application/json');
-    $response = array();
-    
-    if($user instanceof Administrator) {
+    } elseif (isset($_POST['delete_activity']) && $user instanceof Administrator) {
         $activity_id = $_POST['activity_id'];
-
         $result = $user->deleteActivity($activity_id);
-        if($result) {
-            $response = array(
-                'status' => 'success',
-                'message' => 'Activité supprimée avec succès!'
-            );
+        if ($result) {
+            $response = ['status' => 'success', 'message' => 'Activité supprimée avec succès'];
         } else {
-            $response = array(
-                'status' => 'error',
-                'message' => 'Erreur lors de la suppression de l\'activité.'
-            );
+            $response = ['status' => 'error', 'message' => 'Erreur lors de la suppression de l\'activité'];
         }
-    } else {
-        $response = array(
-            'status' => 'error',
-            'message' => 'Vous n\'avez pas les droits nécessaires.'
-        );
+    } elseif (isset($_POST['reserve']) && $user instanceof Member) {
+        $activity_id = $_POST['activity_id'];
+        $date_reservation = date('Y-m-d H:i:s');
+        $status = 'non confirme';
+        $result = $user->addReservation($activity_id, $date_reservation, $status);
+        if($result) {
+            $response = ['status' => 'success', 'message' => 'Réservation effectuée avec succès!', 'data' => $result];
+        } else {
+            $response = ['status' => 'error', 'message' => 'Erreur lors de la réservation.'];
+        }
+    } elseif (isset($_POST['update_member_reservation']) && $user instanceof Member) {
+        $reservation_id = $_POST['reservation_id'];
+        $new_date = $_POST['new_date'];
+        $result = $user->updateReservation($reservation_id, $new_date);
+        if($result) {
+            $response = ['status' => 'success', 'message' => 'Réservation mise à jour avec succès!'];
+        } else {
+            $response = ['status' => 'error', 'message' => 'Erreur lors de la mise à jour de la réservation.'];
+        }
+    } elseif (isset($_POST['delete_member_reservation']) && $user instanceof Member) {
+        $reservation_id = $_POST['reservation_id'];
+        $result = $user->deleteReservation($reservation_id);
+        if($result) {
+            $response = ['status' => 'success', 'message' => 'Réservation supprimée avec succès!'];
+        } else {
+            $response = ['status' => 'error', 'message' => 'Erreur lors de la suppression de la réservation.'];
+        }
     }
-    
+
     echo json_encode($response);
     exit();
 }
@@ -213,93 +164,131 @@ if(isset($_POST['delete_activity'])) {
                 </div>
             </form>
         <?php else: ?>
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-3xl font-bold">Welcome, <?php echo $user->nom . ' ' . $user->prenom; ?> (<?php echo $user->matricule; ?>)</h1>
+                <a href="?logout=1" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Logout</a>
+            </div>
             
             <?php if($user->post == 'membre'): ?>
-                <h2 class="text-2xl font-bold mb-4">Activities</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <?php
-                    $activities = $user->getActivities();
-                    while ($row = $activities->fetch(PDO::FETCH_ASSOC)){
-                        echo '<div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">';
-                        echo '<h3 class="text-xl font-bold mb-2">' . $row['nom_activite'] . '</h3>';
-                        echo '<p class="mb-4">' . $row['description'] . '</p>';
-                        echo '<form method="POST">';
-                        echo '<input type="hidden" name="activity_id" value="' . $row['id'] . '">';
-                        echo '<button type="submit" name="reserve" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Reserve</button>';
-                        echo '</form>';
-                        echo '</div>';
-                    }
-                    ?>
-                </div>
-                <h2 class="text-2xl font-bold my-4">My Reservations</h2>
-                <table class="w-full bg-white shadow-md rounded mb-4">
-                    <thead>
-                        <tr>
-                            <th class="px-4 py-2">Activity</th>
-                            <th class="px-4 py-2">Date</th>
-                            <th class="px-4 py-2">Status</th>
-                            <th class="px-4 py-2">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $reservations = $user->getReservations();
-                        while ($row = $reservations->fetch(PDO::FETCH_ASSOC)){
-                            echo '<tr>';
-                            echo '<td class="border px-4 py-2">' . $row['nom_activite'] . '</td>';
-                            echo '<td class="border px-4 py-2">' . $row['date_reservation'] . '</td>';
-                            echo '<td class="border px-4 py-2">' . $row['status'] . '</td>';
-                            echo '<td class="border px-4 py-2">';
-                            echo '<form method="POST">';
-                            echo '<input type="hidden" name="reservation_id" value="' . $row['id'] . '">';
-                            echo '<button type="submit" name="cancel" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded">Cancel</button>';
-                            echo '</form>';
-                            echo '</td>';
-                            echo '</tr>';
-                        }
-                        ?>
-                    </tbody>
-                </table>
-            <?php else: ?>
-               
-                <h1 class="text-3xl font-bold mb-6">Tableau de bord administrateur</h1>
-            
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                    <?php
-                    $dashboardData = $user->getDashboardData();
-                    $statLabels = [
-                        'reservations' => 'Réservations',
-                        'members' => 'Membres',
-                        'administrators' => 'Administrateurs',
-                        'activities' => 'Activités',
-                        'visits' => 'Visites'
-                    ];
-                    foreach ($dashboardData as $key => $value):
-                    ?>
-                        <div class="bg-white rounded-lg shadow p-6">
-                            <h2 class="text-xl font-semibold mb-2"><?php echo $statLabels[$key]; ?></h2>
-                            <p class="text-3xl font-bold"><?php echo $value; ?></p>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-
-                <div x-data="{ showActivityForm: false, showReservations: false, showActivities: false }">
+                <div x-data="{ showActivities: true, showReservations: false }">
                     <div class="flex space-x-4 mb-4">
-                        <button @click="showActivityForm = !showActivityForm" 
-                                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        <button @click="showActivities = true; showReservations = false" 
+                                :class="{ 'bg-blue-500': showActivities, 'bg-gray-300': !showActivities }"
+                                class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            Activités
+                        </button>
+                        <button @click="showReservations = true; showActivities = false" 
+                                :class="{ 'bg-blue-500': showReservations, 'bg-gray-300': !showReservations }"
+                                class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            Mes Réservations
+                        </button>
+                    </div>
+
+                    <div x-show="showActivities">
+                        <h2 class="text-2xl font-bold mb-4">Activities</h2>
+                        <div id="activitiesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <?php
+                            $activities = $user->getActivities();
+                            while ($row = $activities->fetch(PDO::FETCH_ASSOC)){
+                                echo '<div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">';
+                                echo '<h3 class="text-xl font-bold mb-2">' . $row['nom_activite'] . '</h3>';
+                                echo '<p class="mb-4">' . $row['description'] . '</p>';
+                                echo '<form class="reserveForm">';
+                                echo '<input type="hidden" name="activity_id" value="' . $row['id'] . '">';
+                                echo '<button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Reserve</button>';
+                                echo '</form>';
+                                echo '</div>';
+                            }
+                            ?>
+                        </div>
+                    </div>
+
+                    <div x-show="showReservations">
+                        <h2 class="text-2xl font-bold my-4">My Reservations</h2>
+                        <table id="reservationsTable" class="w-full bg-white shadow-md rounded mb-4">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-2">Activity</th>
+                                    <th class="px-4 py-2">Date</th>
+                                    <th class="px-4 py-2">Status</th>
+                                    <th class="px-4 py-2">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $reservations = $user->getReservations();
+                                while ($row = $reservations->fetch(PDO::FETCH_ASSOC)){
+                                    echo '<tr>';
+                                    echo '<td class="border px-4 py-2">' . $row['nom_activite'] . '</td>';
+                                    echo '<td class="border px-4 py-2">' . $row['date_reservation'] . '</td>';
+                                    echo '<td class="border px-4 py-2">' . $row['status'] . '</td>';
+                                    echo '<td class="border px-4 py-2">';
+                                    echo '<form class="updateReservationForm inline-block mr-2">';
+                                    echo '<input type="hidden" name="reservation_id" value="' . $row['id'] . '">';
+                                    echo '<input type="date" name="new_date" required>';
+                                    echo '<button type="submit" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded">Update</button>';
+                                    echo '</form>';
+                                    echo '<form class="deleteReservationForm inline-block">';
+                                    echo '<input type="hidden" name="reservation_id" value="' . $row['id'] . '">';
+                                    echo '<button type="submit" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded">Delete</button>';
+                                    echo '</form>';
+                                    echo '</td>';
+                                    echo '</tr>';
+                                }
+                                ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div x-data="{ showDashboard: true, showActivityForm: false, showReservations: false, showActivities: false }">
+                    <div class="flex space-x-4 mb-4">
+                        <button @click="showDashboard = true; showActivityForm = false; showReservations = false; showActivities = false" 
+                                :class="{ 'bg-blue-500': showDashboard, 'bg-gray-300': !showDashboard }"
+                                class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            Tableau de bord
+                        </button>
+                        <button @click="showActivityForm = true; showDashboard = false; showReservations = false; showActivities = false" 
+                                :class="{ 'bg-blue-500': showActivityForm, 'bg-gray-300': !showActivityForm }"
+                                class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                             Ajouter une activité
                         </button>
-                        <button @click="showReservations = !showReservations" 
-                                class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        <button @click="showReservations = true; showDashboard = false; showActivityForm = false; showActivities = false" 
+                                :class="{ 'bg-blue-500': showReservations, 'bg-gray-300': !showReservations }"
+                                class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                             Afficher les réservations
                         </button>
-                        <button @click="showActivities = !showActivities" 
-                                class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                        <button @click="showActivities = true; showDashboard = false; showActivityForm = false; showReservations = false" 
+                                :class="{ 'bg-blue-500': showActivities, 'bg-gray-300': !showActivities }"
+                                class="hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                             Afficher les activités
                         </button>
                     </div>
 
-                    <div x-show="showActivityForm" class="mb-8">
+                    <div x-show="showDashboard">
+                        <h2 class="text-2xl font-bold mb-4">Tableau de bord administrateur</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                            <?php
+                            $dashboardData = $user->getDashboardData();
+                            $statLabels = [
+                                'reservations' => 'Réservations',
+                                'members' => 'Membres',
+                                'administrators' => 'Administrateurs',
+                                'activities' => 'Activités',
+                                'visits' => 'Visites'
+                            ];
+                            foreach ($dashboardData as $key => $value):
+                            ?>
+                                <div class="bg-white rounded-lg shadow p-6">
+                                    <h2 class="text-xl font-semibold mb-2"><?php echo $statLabels[$key]; ?></h2>
+                                    <p class="text-3xl font-bold"><?php echo $value; ?></p>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div x-show="showActivityForm">
+                        <h2 class="text-2xl font-bold mb-4">Ajouter une activité</h2>
                         <form id="activityForm" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
                             <div class="mb-4">
                                 <label class="block text-gray-700 text-sm font-bold mb-2" for="nom_activite">
@@ -335,10 +324,10 @@ if(isset($_POST['delete_activity'])) {
                         </div>
                     </div>
 
-                    <div x-show="showReservations" class="mb-8">
+                    <div x-show="showReservations">
                         <h2 class="text-2xl font-bold mb-4">Liste des réservations</h2>
                         <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 overflow-x-auto">
-                            <table class="min-w-full">
+                            <table id="reservationsTable" class="min-w-full">
                                 <thead>
                                     <tr>
                                         <th class="px-4 py-2">ID</th>
@@ -380,10 +369,10 @@ if(isset($_POST['delete_activity'])) {
                         </div>
                     </div>
 
-                    <div x-show="showActivities" class="mb-8">
+                    <div x-show="showActivities">
                         <h2 class="text-2xl font-bold mb-4">Liste des activités</h2>
                         <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 overflow-x-auto">
-                            <table class="min-w-full">
+                            <table id="activitiesTable" class="min-w-full">
                                 <thead>
                                     <tr>
                                         <th class="px-4 py-2">ID</th>
@@ -471,13 +460,205 @@ if(isset($_POST['delete_activity'])) {
                         </div>
                     </div>
                 </div>
+            <?php endif; ?>
 
-                <script>
-                    document.getElementById('activityForm').addEventListener('submit', function(e) {
+            <script>
+                document.getElementById('activityForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    formData.append('add_activity', '1');
+                    
+                    fetch('index.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const activityMessage = document.getElementById('activityMessage');
+                        
+                        if(data.status === 'success') {
+                            activityMessage.textContent = data.message;
+                            activityMessage.classList.remove('hidden');
+                            this.reset();
+                            
+                            // Add the new activity to the activities table
+                            const activitiesTable = document.getElementById('activitiesTable');
+                            if (activitiesTable) {
+                                const newRow = activitiesTable.insertRow(-1);
+                                newRow.innerHTML = `
+                                    <td class="border px-4 py-2">${data.data.id}</td>
+                                    <td class="border px-4 py-2">${data.data.nom_activite}</td>
+                                    <td class="border px-4 py-2">${data.data.description}</td>
+                                    <td class="border px-4 py-2">${data.data.nom_admin} ${data.data.prenom_admin}</td>
+                                    <td class="border px-4 py-2">
+                                        <button onclick="showEditActivityForm(${JSON.stringify(data.data)})"
+                                                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded mr-2">
+                                            Modifier
+                                        </button>
+                                        <button onclick="deleteActivity(${data.data.id})"
+                                                class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded">
+                                            Supprimer
+                                        </button>
+                                    </td>
+                                `;
+                            }
+                            
+                            setTimeout(() => {
+                                activityMessage.classList.add('hidden');
+                            }, 3000);
+                        } else {
+                            activityMessage.textContent = data.message;
+                            activityMessage.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        const activityMessage = document.getElementById('activityMessage');
+                        activityMessage.textContent = "Une erreur est survenue lors de la communication avec le serveur.";
+                        activityMessage.classList.remove('hidden');
+                    });
+                });
+
+                function updateReservationStatus(reservationId, status) {
+                    const formData = new FormData();
+                    formData.append('update_reservation', '1');
+                    formData.append('reservation_id', reservationId);
+                    formData.append('status', status);
+                    
+                    fetch('index.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const reservationMessage = document.getElementById('reservationMessage');
+                        
+                        if(data.status === 'success') {
+                            reservationMessage.textContent = data.message;
+                            reservationMessage.classList.remove('hidden');
+                            
+                            // Update the reservation status in the table
+                            const reservationRow = document.querySelector(`tr[data-reservation-id="${reservationId}"]`);
+                            if (reservationRow) {
+                                reservationRow.querySelector('.reservation-status').textContent = status;
+                            }
+                            
+                            setTimeout(() => {
+                                reservationMessage.classList.add('hidden');
+                            }, 3000);
+                        } else {
+                            reservationMessage.textContent = data.message;
+                            reservationMessage.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        const reservationMessage = document.getElementById('reservationMessage');
+                        reservationMessage.textContent = "Une erreur est survenue lors de la communication avec le serveur.";
+                        reservationMessage.classList.remove('hidden');
+                    });
+                }
+
+                function showEditActivityForm(activity) {
+                    document.getElementById('edit_activity_id').value = activity.id;
+                    document.getElementById('edit_nom_activite').value = activity.nom_activite;
+                    document.getElementById('edit_description').value = activity.description;
+                    document.getElementById('editActivityModal').classList.remove('hidden');
+                }
+
+                function closeEditActivityModal() {
+                    document.getElementById('editActivityModal').classList.add('hidden');
+                }
+
+                function updateActivity() {
+                    const formData = new FormData(document.getElementById('editActivityForm'));
+                    formData.append('update_activity', '1');
+                    
+                    fetch('index.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const activityMessage = document.getElementById('activityMessage');
+                        
+                        if(data.status === 'success') {
+                            activityMessage.textContent = data.message;
+                            activityMessage.classList.remove('hidden');
+                            closeEditActivityModal();
+                            
+                            // Update the activity in the table
+                            const activityRow = document.querySelector(`tr[data-activity-id="${formData.get('activity_id')}"]`);
+                            if (activityRow) {
+                                activityRow.querySelector('.activity-name').textContent = formData.get('nom_activite');
+                                activityRow.querySelector('.activity-description').textContent = formData.get('description');
+                            }
+                            
+                            setTimeout(() => {
+                                activityMessage.classList.add('hidden');
+                            }, 3000);
+                        } else {
+                            activityMessage.textContent = data.message;
+                            activityMessage.classList.remove('hidden');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        const activityMessage = document.getElementById('activityMessage');
+                        activityMessage.textContent = "Une erreur est survenue lors de la communication avec le serveur.";
+                        activityMessage.classList.remove('hidden');
+                    });
+                }
+
+                function deleteActivity(activityId) {
+                    if (confirm('Êtes-vous sûr de vouloir supprimer cette activité ?')) {
+                        const formData = new FormData();
+                        formData.append('delete_activity', '1');
+                        formData.append('activity_id', activityId);
+                        
+                        fetch('index.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            const activityMessage = document.getElementById('activityMessage');
+                            
+                            if(data.status === 'success') {
+                                activityMessage.textContent = data.message;
+                                activityMessage.classList.remove('hidden');
+                                
+                                // Remove the activity from the table
+                                const activityRow = document.querySelector(`tr[data-activity-id="${activityId}"]`);
+                                if (activityRow) {
+                                    activityRow.remove();
+                                }
+                                
+                                setTimeout(() => {
+                                    activityMessage.classList.add('hidden');
+                                }, 3000);
+                            } else {
+                                activityMessage.textContent = data.message;
+                                activityMessage.classList.remove('hidden');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            const activityMessage = document.getElementById('activityMessage');
+                            activityMessage.textContent = "Une erreur est survenue lors de la suppression de l'activité.";
+                            activityMessage.classList.remove('hidden');
+                        });
+                    }
+                }
+
+                // Member-specific functions
+                document.querySelectorAll('.reserveForm').forEach(form => {
+                    form.addEventListener('submit', function(e) {
                         e.preventDefault();
                         
                         const formData = new FormData(this);
-                        formData.append('add_activity', '1');
+                        formData.append('reserve', '1');
                         
                         fetch('index.php', {
                             method: 'POST',
@@ -485,35 +666,44 @@ if(isset($_POST['delete_activity'])) {
                         })
                         .then(response => response.json())
                         .then(data => {
-                            const activityMessage = document.getElementById('activityMessage');
-                            
+                            alert(data.message);
                             if(data.status === 'success') {
-                                activityMessage.textContent = data.message;
-                                activityMessage.classList.remove('hidden');
-                                this.reset();
-                                
-                                setTimeout(() => {
-                                    activityMessage.classList.add('hidden');
-                                    location.reload();
-                                }, 3000);
-                            } else {
-                                activityMessage.textContent = data.message;
-                                activityMessage.classList.remove('hidden');
+                                // Add the new reservation to the reservations table
+                                const reservationsTable = document.getElementById('reservationsTable');
+                                if (reservationsTable) {
+                                    const newRow = reservationsTable.insertRow(-1);
+                                    newRow.innerHTML = `
+                                        <td class="border px-4 py-2">${data.data.nom_activite}</td>
+                                        <td class="border px-4 py-2">${data.data.date_reservation}</td>
+                                        <td class="border px-4 py-2">${data.data.status}</td>
+                                        <td class="border px-4 py-2">
+                                            <form class="updateReservationForm inline-block mr-2">
+                                                <input type="hidden" name="reservation_id" value="${data.data.id}">
+                                                <input type="date" name="new_date" required>
+                                                <button type="submit" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded">Update</button>
+                                            </form>
+                                            <form class="deleteReservationForm inline-block">
+                                                <input type="hidden" name="reservation_id" value="${data.data.id}">
+                                                <button type="submit" class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded">Delete</button>
+                                            </form>
+                                        </td>
+                                    `;
+                                }
                             }
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            const activityMessage = document.getElementById('activityMessage');
-                            activityMessage.textContent = "Une erreur est survenue lors de la communication avec le serveur.";
-                            activityMessage.classList.remove('hidden');
+                            alert("Une erreur est survenue lors de la réservation.");
                         });
                     });
+                });
 
-                    function updateReservationStatus(reservationId, status) {
-                        const formData = new FormData();
-                        formData.append('update_reservation', '1');
-                        formData.append('reservation_id', reservationId);
-                        formData.append('status', status);
+                document.querySelectorAll('.updateReservationForm').forEach(form => {
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        
+                        const formData = new FormData(this);
+                        formData.append('update_member_reservation', '1');
                         
                         fetch('index.php', {
                             method: 'POST',
@@ -521,79 +711,29 @@ if(isset($_POST['delete_activity'])) {
                         })
                         .then(response => response.json())
                         .then(data => {
-                            const reservationMessage = document.getElementById('reservationMessage');
-                            
+                            alert(data.message);
                             if(data.status === 'success') {
-                                reservationMessage.textContent = data.message;
-                                reservationMessage.classList.remove('hidden');
-                                
-                                setTimeout(() => {
-                                    reservationMessage.classList.add('hidden');
-                                    location.reload();
-                                }, 3000);
-                            } else {
-                                reservationMessage.textContent = data.message;
-                                reservationMessage.classList.remove('hidden');
+                                // Update the reservation date in the table
+                                const reservationRow = this.closest('tr');
+                                if (reservationRow) {
+                                    reservationRow.querySelector('td:nth-child(2)').textContent = formData.get('new_date');
+                                }
                             }
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            const reservationMessage = document.getElementById('reservationMessage');
-                            reservationMessage.textContent = "Une erreur est survenue lors de la communication avec le serveur.";
-                            reservationMessage.classList.remove('hidden');
+                            alert("Une erreur est survenue lors de la mise à jour de la réservation.");
                         });
-                    }
+                    });
+                });
 
-                    function showEditActivityForm(activity) {
-                        document.getElementById('edit_activity_id').value = activity.id;
-                        document.getElementById('edit_nom_activite').value = activity.nom_activite;
-                        document.getElementById('edit_description').value = activity.description;
-                        document.getElementById('editActivityModal').classList.remove('hidden');
-                    }
-
-                    function closeEditActivityModal() {
-                        document.getElementById('editActivityModal').classList.add('hidden');
-                    }
-
-                    function updateActivity() {
-                        const formData = new FormData(document.getElementById('editActivityForm'));
-                        formData.append('update_activity', '1');
+                document.querySelectorAll('.deleteReservationForm').forEach(form => {
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
                         
-                        fetch('index.php', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            const activityMessage = document.getElementById('activityMessage');
-                            
-                            if(data.status === 'success') {
-                                activityMessage.textContent = data.message;
-                                activityMessage.classList.remove('hidden');
-                                closeEditActivityModal();
-                                
-                                setTimeout(() => {
-                                    activityMessage.classList.add('hidden');
-                                    location.reload();
-                                }, 3000);
-                            } else {
-                                activityMessage.textContent = data.message;
-                                activityMessage.classList.remove('hidden');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            const activityMessage = document.getElementById('activityMessage');
-                            activityMessage.textContent = "Une erreur est survenue lors de la communication avec le serveur.";
-                            activityMessage.classList.remove('hidden');
-                        });
-                    }
-
-                    function deleteActivity(activityId) {
-                        if (confirm('Êtes-vous sûr de vouloir supprimer cette activité ?')) {
-                            const formData = new FormData();
-                            formData.append('delete_activity', '1');
-                            formData.append('activity_id', activityId);
+                        if (confirm('Êtes-vous sûr de vouloir supprimer cette réservation ?')) {
+                            const formData = new FormData(this);
+                            formData.append('delete_member_reservation', '1');
                             
                             fetch('index.php', {
                                 method: 'POST',
@@ -601,32 +741,25 @@ if(isset($_POST['delete_activity'])) {
                             })
                             .then(response => response.json())
                             .then(data => {
-                                const activityMessage = document.getElementById('activityMessage');
-                                
+                                alert(data.message);
                                 if(data.status === 'success') {
-                                    activityMessage.textContent = data.message;
-                                    activityMessage.classList.remove('hidden');
-                                    
-                                    setTimeout(() => {
-                                        activityMessage.classList.add('hidden');
-                                        location.reload();
-                                    }, 3000);
-                                } else {
-                                    activityMessage.textContent = data.message;
-                                    activityMessage.classList.remove('hidden');
+                                    // Remove the reservation from the table
+                                    const reservationRow = this.closest('tr');
+                                    if (reservationRow) {
+                                        reservationRow.remove();
+                                    }
                                 }
                             })
                             .catch(error => {
                                 console.error('Error:', error);
-                                const activityMessage = document.getElementById('activityMessage');
-                                activityMessage.textContent = "Une erreur est survenue lors de la suppression de l'activité.";
-                                activityMessage.classList.remove('hidden');
+                                alert("Une erreur est survenue lors de la suppression de la réservation.");
                             });
                         }
-                    }
-                </script>
-            <?php endif; ?>
+                    });
+                });
+            </script>
         <?php endif; ?>
     </div>
 </body>
 </html>
+

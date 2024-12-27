@@ -68,7 +68,7 @@ class Administrator extends User {
     public function getAllReservations() {
         $query = "SELECT r.*, u.nom, u.prenom, a.nom_activite 
                  FROM reservation r 
-                 JOIN user_ u ON r.id_membre = u.id 
+                 JOIN user_ u ON r.id = u.id 
                  JOIN activite a ON r.id= a.id";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
