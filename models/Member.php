@@ -56,7 +56,7 @@ class Member extends User {
                   WHERE r.user= :user_id";
 
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":user_id", $this->id);
+        $stmt->bindParam(":user", $this->id);
         $stmt->execute();
 
         return $stmt;

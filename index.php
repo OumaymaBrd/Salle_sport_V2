@@ -203,7 +203,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </div>
                     </div>
 
-                    <div x-show="showReservations">
                         <h2 class="text-2xl font-bold my-4">My Reservations</h2>
                         <table id="reservationsTable" class="w-full bg-white shadow-md rounded mb-4">
                             <thead>
