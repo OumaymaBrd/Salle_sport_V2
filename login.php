@@ -29,7 +29,7 @@ if(isset($_POST['login'])) {
     
         if ($user->post == 'administration') {
             header("Location: index.php?matricule=" . $user->matricule);
-        } else {
+        } elseif($user->post=='membre') {
             header("Location: pages/membre.php?matricule=" . $user->matricule);
         }
         exit();
@@ -47,8 +47,22 @@ if(isset($_POST['login'])) {
     <title>Connexion - FitZone</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="assets/style/style_index.css" rel="stylesheet">
+    <link href="assets/style/style.css" rel="stylesheet">
+    
 </head>
 <body class="bg-gray-100">
+  
+    <nav>
+        <div class="container nav-container">
+            <div class="logo">FitZone</div>
+            <ul class="nav-links">
+                <li><a href="pages/accueil.html">Accueil</a></li>
+                <li><a href="login.php">Connexion</a></li>
+                <li><a href="pages/inscription.php">Inscription</a></li>
+            </ul>
+            <div class="menu-toggle">&#9776;</div>
+        </div>
+    </nav>
     <div class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-md w-full space-y-8">
             <div>
@@ -68,6 +82,7 @@ if(isset($_POST['login'])) {
                         <label for="email-address" class="sr-only">Adresse e-mail</label>
                         <input id="email-address" name="email" type="email" autocomplete="email" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm" placeholder="Adresse e-mail">
                     </div>
+                    <br> 
                     <div>
                         <label for="password" class="sr-only">Mot de passe</label>
                         <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm" placeholder="Mot de passe">
