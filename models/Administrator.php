@@ -69,7 +69,7 @@ class Administrator extends User {
         $query = "SELECT r.*, u.nom, u.prenom, a.nom_activite 
                  FROM reservation r 
                  JOIN user_ u ON r.id_membre = u.id 
-                 JOIN activite a ON r.id = a.id";
+                 JOIN activite a ON r.id= a.id";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
