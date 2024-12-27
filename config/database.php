@@ -1,7 +1,7 @@
 <?php
 class Database {
     private $host = "localhost";
-    private $db_name = "salle_gesion_salle_v2";
+    private $db_name = "gestion_salle_v2";
     private $username = "root";
     private $password = "";
     public $conn;
@@ -17,5 +17,9 @@ class Database {
         return $this->conn;
     }
 }
+
+// Initialize the database connection
+$database = new Database();
+$db = $database->getConnection();
 ?>
 
