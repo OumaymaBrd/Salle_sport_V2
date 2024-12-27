@@ -7,7 +7,7 @@ create table user_(
     
     id int PRIMARY KEY AUTO_INCREMENT ,
     matricule varchar(150) ,
-    post ENUM('membre','coach','administration'),
+    post ENUM('membre','administration'),
     email varchar(150),
     tel varchar(20),
     supprimer TINYINT(1) DEFAULT 0
@@ -18,7 +18,6 @@ create table user_(
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_membre INT,
     matricule VARCHAR(150),
-    post ENUM('membre', 'coach', 'administration'),
     date_reservation DATETIME,
     status ENUM('confirme', 'non confirme'),
 
@@ -33,15 +32,15 @@ add COLUMN nom_activite text;
 
 --add colomn matricule coach
 ALTER TABLE reservation
-ADD COLUMN matricule_coach varchar(150);
+ADD COLUMN matricule_administration varchar(150);
 
 --create le tableau reservation 
 CREATE table activite (
     id int PRIMARY key AUTO_INCREMENT,
     nom_activite text ,
-    matricule_coach varchar(150),
+    matricule_administration varchar(150),
     description text,
-    FOREIGN KEY(matricule_coach) REFERENCES user_(matricule),
+    FOREIGN KEY(matricule_administration) REFERENCES user_(matricule),
     supprimer TINYINT(1) DEFAULT 0TINYINT(1) DEFAULT 0
     );
 
