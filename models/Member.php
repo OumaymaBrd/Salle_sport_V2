@@ -2,73 +2,121 @@
 require_once 'User.php';
 
 class Member extends User {
-    private $reservation_table = "reservation";
-    private $activity_table = "activite";
-
-    public function addReservation($activity_id, $date_reservation, $status) {
-        $query = "INSERT INTO " . $this->reservation_table . " 
-                  SET user_id = :user_id, activite_id = :activity_id, 
-                  date_reservation = :date_reservation, status = :status";
-
+    public function getMemberInfo($matricule) {
+        $query = "SELECT nom, prenom FROM " . $this->table_name . " WHERE matricule = :matricule";
         $stmt = $this->conn->prepare($query);
-
-        $stmt->bindParam(":user_id", $this->id);
-        $stmt->bindParam(":activity_id", $activity_id);
-        $stmt->bindParam(":date_reservation", $date_reservation);
-        $stmt->bindParam(":status", $status);
-
-        if($stmt->execute()) {
-            return $this->conn->lastInsertId();
-        }
-        return false;
-    }
-
-    public function updateReservation($reservation_id, $new_date) {
-        $query = "UPDATE " . $this->reservation_table . "
-                  SET date_reservation = :new_date
-                  WHERE id = :reservation_id AND user_id = :user_id";
-
-        $stmt = $this->conn->prepare($query);
-
-        $stmt->bindParam(":new_date", $new_date);
-        $stmt->bindParam(":reservation_id", $reservation_id);
-        $stmt->bindParam(":user_id", $this->id);
-
-        return $stmt->execute();
-    }
-
-    public function deleteReservation($reservation_id) {
-        $query = "DELETE FROM " . $this->reservation_table . "
-                  WHERE id = :reservation_id AND user_id = :user_id";
-
-        $stmt = $this->conn->prepare($query);
-
-        $stmt->bindParam(":reservation_id", $reservation_id);
-        $stmt->bindParam(":user_id", $this->id);
-
-        return $stmt->execute();
-    }
-
-    public function getReservations() {
-        $query = "SELECT r.*, a.nom_activite 
-                  FROM " . $this->reservation_table . " r
-                  JOIN " . $this->activity_table . " a ON r.activite_id = a.id
-                  WHERE r.user= :user_id";
-
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":user", $this->id);
+        $stmt->bindParam(':matricule', $matricule);
         $stmt->execute();
-
-        return $stmt;
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function getActivities() {
-        $query = "SELECT * FROM " . $this->activity_table;
+        $query = "SELECT id, nom_activite, description FROM activite WHERE supprimer = 0";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
-
         return $stmt;
     }
+
+    public function addReservation($matricule, $activite_id) {
+        // Vérifier si l'activité existe et s'il reste des places
+        $queryActivite = "SELECT nom_activite, disponibilite, reste_place FROM activite WHERE id = :activite_id";
+        $stmtActivite = $this->conn->prepare($queryActivite);
+        $stmtActivite->bindParam(':activite_id', $activite_id);
+        $stmtActivite->execute();
+        $activite = $stmtActivite->fetch(PDO::FETCH_ASSOC);
+    
+        if (!$activite) {
+            return ['status' => 'error', 'message' => 'Activité non trouvée'];
+        }
+    
+        if ($activite['reste_place'] <= 0) {
+            return ['status' => 'error', 'message' => 'Il n\'y a plus de places disponibles pour l\'activité ' . $activite['nom_activite'] . '. Veuillez choisir une autre activité.'];
+        }
+    
+        // Vérifier si le membre a déjà réservé cette activité
+        $queryExistingReservation = "SELECT id FROM reservation WHERE matricule = :matricule AND nom_activite = :nom_activite";
+        $stmtExistingReservation = $this->conn->prepare($queryExistingReservation);
+        $stmtExistingReservation->bindParam(':matricule', $matricule);
+        $stmtExistingReservation->bindParam(':nom_activite', $activite['nom_activite']);
+        $stmtExistingReservation->execute();
+    
+        if ($stmtExistingReservation->fetch()) {
+            return ['status' => 'error', 'message' => 'Vous avez déjà réservé l\'activité ' . $activite['nom_activite'] . '. Veuillez choisir une autre activité.'];
+        }
+    
+        // Commencer une transaction
+        $this->conn->beginTransaction();
+    
+        try {
+            // Insérer la réservation
+            $queryInsert = "INSERT INTO reservation (matricule, date_reservation, status, nom_activite) 
+                            VALUES (:matricule, :date, 'non confirme', :nom_activite)";
+            
+            $stmtInsert = $this->conn->prepare($queryInsert);
+            $stmtInsert->bindParam(':matricule', $matricule);
+            $stmtInsert->bindParam(':nom_activite', $activite['nom_activite']);
+            
+            $date = date('Y-m-d H:i:s');
+            $stmtInsert->bindParam(':date', $date);
+            
+            $stmtInsert->execute();
+    
+            // Mettre à jour le nombre de places restantes
+            $queryUpdate = "UPDATE activite SET reste_place = reste_place - 1 WHERE id = :activite_id";
+            $stmtUpdate = $this->conn->prepare($queryUpdate);
+            $stmtUpdate->bindParam(':activite_id', $activite_id);
+            $stmtUpdate->execute();
+    
+            // Valider la transaction
+            $this->conn->commit();
+    
+            return [
+                'status' => 'success',
+                'message' => 'Réservation ajoutée avec succès pour l\'activité ' . $activite['nom_activite'],
+                'data' => [
+                    'id' => $this->conn->lastInsertId(),
+                    'nom_activite' => $activite['nom_activite'],
+                    'date_reservation' => $date,
+                    'status' => 'non confirme'
+                ]
+            ];
+        } catch (Exception $e) {
+            // En cas d'erreur, annuler la transaction
+            $this->conn->rollBack();
+            return ['status' => 'error', 'message' => 'Erreur lors de l\'ajout de la réservation: ' . $e->getMessage()];
+        }
+    }
+
+    public function getReservations($matricule) {
+        $query = "SELECT r.id, r.nom_activite, r.date_reservation, r.status 
+                 FROM reservation r 
+                 WHERE r.matricule = :matricule";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':matricule', $matricule);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    public function cancelReservation($reservation_id, $matricule) {
+        $query = "DELETE FROM reservation WHERE id = :id AND matricule = :matricule";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $reservation_id);
+        $stmt->bindParam(':matricule', $matricule);
+        
+        if($stmt->execute()) {
+            return ['status' => 'success', 'message' => 'Réservation annulée avec succès'];
+        }
+        return ['status' => 'error', 'message' => 'Erreur lors de l\'annulation de la réservation'];
+    }
+
+    public function getActivitiesWithAvailability() {
+        $query = "SELECT id, nom_activite, description, disponibilite, reste_place FROM activite WHERE supprimer = 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    
 }
 ?>
 

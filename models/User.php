@@ -16,11 +16,15 @@ class User {
         $this->conn = $db;
     }
 
+    public function generateMatricule() {
+        return 'AV' . str_pad(mt_rand(0, 9999), 4, '0', STR_PAD_LEFT);
+    }
+
     public function register() {
         $query = "INSERT INTO " . $this->table_name . " SET matricule=:matricule, post=:post, email=:email, tel=:tel, nom=:nom, prenom=:prenom, password=:password";
         $stmt = $this->conn->prepare($query);
 
-        $this->matricule = htmlspecialchars(strip_tags($this->matricule));
+        $this->matricule = $this->generateMatricule();
         $this->post = htmlspecialchars(strip_tags($this->post));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->tel = htmlspecialchars(strip_tags($this->tel));
@@ -59,6 +63,11 @@ class User {
         }
         return false;
     }
-}
-?>
 
+
+    
+}
+
+
+
+?>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitZone - Votre salle de sport</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/style/style.css">
+</head>
+<body>
+    <nav>
+        <div class="container nav-container">
+            <div class="logo">FitZone</div>
+            <ul class="nav-links">
+                <li><a href="accueil.html">Accueil</a></li>
+                <li><a href="../login.php">Connexion</a></li>
+                <li><a href="inscription.php">Inscription</a></li>
+            </ul>
+            <div class="menu-toggle">&#9776;</div>
+        </div>
+    </nav>
+
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>FitZone</h1>
+            <p>Votre parcours vers une meilleure santé commence ici</p>
+            <a href="#contact" class="btn">Commencez maintenant</a>
+        </div>
+    </section>
+
+    <section class="activities">
+        <div class="container">
+            <h2>Nos Activités</h2>
+            <div class="activities-grid">
+                <div class="activity-card">
+                    <div class="icon">🥊</div>
+                    <h3>Boxe</h3>
+                    <p>Améliorez votre force et votre agilité avec nos cours de boxe.</p>
+                </div>
+                <div class="activity-card">
+                    <div class="icon">🧘</div>
+                    <h3>Yoga</h3>
+                    <p>Trouvez l'équilibre entre le corps et l'esprit dans nos sessions de yoga.</p>
+                </div>
+                <div class="activity-card">
+                    <div class="icon">💪</div>
+                    <h3>Musculation</h3>
+                    <p>Sculptez votre corps avec notre équipement de pointe.</p>
+                </div>
+                <div class="activity-card">
+                    <div class="icon">💃</div>
+                    <h3>Zumba</h3>
+                    <p>Brûlez des calories en vous amusant avec nos cours de Zumba énergiques.</p>
+                </div>
+                <div class="activity-card">
+                    <div class="icon">🏋️</div>
+                    <h3>CrossFit</h3>
+                    <p>Repoussez vos limites avec nos séances de CrossFit intenses.</p>
+                </div>
+                <div class="activity-card">
+                    <div class="icon">🚴</div>
+                    <h3>Spinning</h3>
+                    <p>Pédalez vers la forme avec nos cours de spinning dynamiques.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="contact">
+        <div class="container">
+            <h2>Contactez-nous</h2>
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <h3>Nos Coordonnées</h3>
+                    <ul>
+                        <li>📞 +33 1 23 45 67 89</li>
+                        <li>✉️ contact@fitzone.com</li>
+                        <li>🏠 123 Rue du Sport, 75001 Paris</li>
+                    </ul>
+                </div>
+                <div class="contact-form">
+                    <h3>Envoyez-nous un message</h3>
+                    <form>
+                        <input type="text" placeholder="Nom" required>
+                        <input type="email" placeholder="Email" required>
+                        <textarea placeholder="Message" rows="4" required></textarea>
+                        <button type="submit">Envoyer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 FitZone. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <script>
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navLinks = document.querySelector('.nav-links');
+
+        menuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+    </script>
+</body>
+</html>

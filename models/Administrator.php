@@ -33,28 +33,33 @@ class Administrator extends User {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $data['activities'] = $row['count'];
 
-        // Nombre de visites (basé sur le nombre total d'utilisateurs comme approximation)
-        $query = "SELECT COUNT(*) as count FROM user_";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $data['visits'] = $row['count'];
-
         return $data;
     }
 
-    public function addActivity($nom_activite, $description, $matricule_administration) {
+    public function addActivity($nom_activite, $description, $matricule_administration, $disponibilite) {
         try {
-            $query = "INSERT INTO activite (nom_activite, description, matricule_administration) 
-                      VALUES (:nom_activite, :description, :matricule_administration)";
+            $query = "INSERT INTO activite (nom_activite, description, matricule_administration, disponibilite, reste_place) 
+                      VALUES (:nom_activite, :description, :matricule_administration, :disponibilite, :reste_place)";
             $stmt = $this->conn->prepare($query);
             
             $stmt->bindParam(':nom_activite', $nom_activite);
             $stmt->bindParam(':description', $description);
             $stmt->bindParam(':matricule_administration', $matricule_administration);
+            $stmt->bindParam(':disponibilite', $disponibilite);
+            $stmt->bindParam(':reste_place', $disponibilite); // reste_place prend la même valeur que disponibilite
             
             if ($stmt->execute()) {
-                return $this->conn->lastInsertId();
+                $id = $this->conn->lastInsertId();
+                return [
+                    'id' => $id,
+                    'nom_activite' => $nom_activite,
+                    'description' => $description,
+                    'matricule_administration' => $matricule_administration,
+                    'disponibilite' => $disponibilite,
+                    'reste_place' => $disponibilite,
+                    'nom_admin' => $this->nom,
+                    'prenom_admin' => $this->prenom
+                ];
             } else {
                 error_log("Erreur SQL: " . implode(", ", $stmt->errorInfo()));
                 return false;
@@ -68,8 +73,8 @@ class Administrator extends User {
     public function getAllReservations() {
         $query = "SELECT r.*, u.nom, u.prenom, a.nom_activite 
                  FROM reservation r 
-                 JOIN user_ u ON r.id = u.id 
-                 JOIN activite a ON r.id= a.id";
+                 JOIN user_ u ON r.matricule = u.matricule 
+                 JOIN activite a ON r.nom_activite = a.nom_activite";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -84,7 +89,7 @@ class Administrator extends User {
     }
 
     public function getConfirmedActivities() {
-        $query = "SELECT a.*, u.nom, u.prenom 
+        $query = "SELECT a.*, u.nom, u.prenom, a.reste_place
                  FROM activite a 
                  JOIN user_ u ON a.matricule_administration = u.matricule 
                  WHERE a.supprimer = 0";
@@ -93,11 +98,13 @@ class Administrator extends User {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function updateActivity($id, $nom_activite, $description) {
-        $query = "UPDATE activite SET nom_activite = :nom_activite, description = :description WHERE id = :id";
+    public function updateActivity($id, $nom_activite, $description, $disponibilite) {
+        $query = "UPDATE activite SET nom_activite = :nom_activite, description = :description, disponibilite = :disponibilite, reste_place = :reste_place WHERE id = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":nom_activite", $nom_activite);
         $stmt->bindParam(":description", $description);
+        $stmt->bindParam(":disponibilite", $disponibilite);
+        $stmt->bindParam(":reste_place", $disponibilite); // reste_place prend la même valeur que disponibilite
         $stmt->bindParam(":id", $id);
         return $stmt->execute();
     }
