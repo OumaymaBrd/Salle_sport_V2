@@ -28,7 +28,7 @@ if (!isset($_SESSION['user_type'])) {
 
 
 if ($_SESSION['user_type'] === 'administration') {
-    header("Location: admin_dashboard.php");
+    header("Location: index.php");
     exit();
 }
 
